@@ -5,6 +5,9 @@
 #include "Camera/CameraComponent.h"
 #include "Components/DecalComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/InputComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -48,4 +51,36 @@ AMyTDSCharacter::AMyTDSCharacter()
 void AMyTDSCharacter::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+	MovementTick(DeltaSeconds);
+}
+
+void AMyTDSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &AMyTDSCharacter::InputAxisX);
+	PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &AMyTDSCharacter::InputAxisY);
+}
+
+void AMyTDSCharacter::InputAxisX(float Value)
+{
+	AxisX = Value;
+}
+void AMyTDSCharacter::InputAxisY(float Value)
+{
+	AxisY = Value;
+}
+
+void AMyTDSCharacter::MovementTick(float DeltaTime)
+{
+	AddMovementInput(FVector(1.0f, 0.0f, 0.0f), AxisX);
+	AddMovementInput(FVector(0.0f, 1.0f, 0.0f), AxisY);
+	APlayerController* myController = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (myController)
+	{
+		FHitResult HitResult;
+		myController->GetHitResultUnderCursorByChannel(ETraceTypeQuery::TraceTypeQuery6, false, HitResult);
+		float YawRot = UKismetMathLibrary::FindLookAtRotation(GetActorLocation(), HitResult.Location).Yaw;
+		FRotator NewRotation(0.0f, YawRot, 0.0f);
+		SetActorRotation(FQuat(NewRotation));
+	}
 }
